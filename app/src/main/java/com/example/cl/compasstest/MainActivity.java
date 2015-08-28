@@ -1,24 +1,29 @@
 package com.example.cl.compasstest;
 
 import android.app.Activity;
-import android.app.usage.UsageEvents;
 import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.location.GpsStatus;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.animation.Animation;
+import android.view.animation.RotateAnimation;
+import android.widget.ImageView;
 
 public class MainActivity extends Activity {
 
     private SensorManager sensorManager;
+    private ImageView compassImg;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        compassImg = (ImageView) findViewById(R.id.compass_img);
+
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         Sensor magneticSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         Sensor accelerometerSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -38,6 +43,7 @@ public class MainActivity extends Activity {
 
         float[] accelerometerValues = new float[3];
         float[] magneticValues = new float[3];
+        private float lastRotateDegree;
 
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
@@ -56,16 +62,33 @@ public class MainActivity extends Activity {
             SensorManager.getRotationMatrix(R, null, accelerometerValues, magneticValues);
             //调用 getOrientation()方法为 values数组赋值
             SensorManager.getOrientation(R, values);
+
+            //将计算出的旋转角度取反，用于旋转指南针的背景
+            float rotateDegree = -(float) Math.toDegrees(values[0]);
+            if(Math.abs(rotateDegree - lastRotateDegree) > 1){
+                //onSensorChanged()方法中使用到了旋转动画技术，我们创建了一个 RotateAnimation的实例
+                //第一个参数表示旋转的起始角,
+                // 第二个参数表示旋转的终止角度，
+                // 后面四个参数用于指定旋转的中心点。
+                // 这里把传感器中获取到的旋转角度取反
+                // 传递给 RotateAnimation，
+                // 并指定旋转的中心点为指南针背景图的中心，
+                // 然后调用 ImageView的 startAnimation ()方法来执行旋转动画。
+                RotateAnimation animation = new RotateAnimation(lastRotateDegree,rotateDegree,
+                        Animation.RELATIVE_TO_SELF,0.5f,Animation.RELATIVE_TO_SELF,0.5f);
+                animation.setFillAfter(true);
+                compassImg.startAnimation(animation);
+                lastRotateDegree = rotateDegree;
+            }
+
             //调用 Math.toDegrees()方法将它转换成角度
             Log.d("MainActivity", "value[0] is " + Math.toDegrees(values[0]));
         }
-
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int i) {
 
         }
     };
-
 
 }
